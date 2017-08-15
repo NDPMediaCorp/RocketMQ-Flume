@@ -23,6 +23,11 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.flume.source.PollableSourceConstants.BACKOFF_SLEEP_INCREMENT;
+import static org.apache.flume.source.PollableSourceConstants.DEFAULT_BACKOFF_SLEEP_INCREMENT;
+import static org.apache.flume.source.PollableSourceConstants.DEFAULT_MAX_BACKOFF_SLEEP;
+import static org.apache.flume.source.PollableSourceConstants.MAX_BACKOFF_SLEEP;
+
 /**
  * RocketMQSource Created with rocketmq-flume.
  *
@@ -48,12 +53,16 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
 
     private int pullBatchSize;
 
+    private Long backoffSleepIncrement;
+
+    private Long maxBackOffSleepInterval;
+
     @Override public void configure(Context context) {
         topic = context.getString(RocketMQSourceConstant.TOPIC, RocketMQSourceConstant.DEFAULT_TOPIC);
         tag = context.getString(RocketMQSourceConstant.TAG, RocketMQSourceConstant.DEFAULT_TAG);
         extra = context.getString(RocketMQSourceConstant.EXTRA, null);
-        String messageModel = context.getString(RocketMQSourceConstant.MESSAGE_MODEL, RocketMQSourceConstant.DEFAULT_MESSAGE_MODEL);
-        String fromWhere = context.getString(RocketMQSourceConstant.CONSUME_FROM_WHERE, RocketMQSourceConstant.DEFAULT_CONSUME_FROM_WHERE);
+        backoffSleepIncrement = context.getLong(BACKOFF_SLEEP_INCREMENT, DEFAULT_BACKOFF_SLEEP_INCREMENT);
+        maxBackOffSleepInterval = context.getLong(MAX_BACKOFF_SLEEP, DEFAULT_MAX_BACKOFF_SLEEP);
         pullBatchSize = context.getInteger(RocketMQSourceConstant.PULL_BATCH_SIZE, RocketMQSourceConstant.DEFAULT_PULL_BATCH_SIZE);
         consumer = RocketMQSourceUtil.getConsumerInstance(context);
 
@@ -174,6 +183,14 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
             return Status.BACKOFF;
         }
         return Status.READY;
+    }
+
+    @Override public long getBackOffSleepIncrement() {
+        return backoffSleepIncrement;
+    }
+
+    @Override public long getMaxBackOffSleepInterval() {
+        return maxBackOffSleepInterval;
     }
 
     @Override public synchronized void start() {
