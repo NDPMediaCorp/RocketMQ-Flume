@@ -85,10 +85,15 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
     @Override
     public Status process() throws EventDeliveryException {
         try {
-
+            LOG.debug("start process source, processMap:{}", processMap.size());
+            if (processMap.size() == 0){
+                LOG.info("processMap is empty, so can't find messageQueue.");
+                return Status.READY;
+            }
             for ( Map.Entry<MessageQueue, ProcessQueue> entry : processMap.entrySet() ) {
                 MessageQueue messageQueue = entry.getKey();
                 ProcessQueue processQueue = entry.getValue();
+                LOG.debug("messageQueue:{}, processQueue:{}", messageQueue, processQueue);
                 if ( processQueue.hasPendingMessage() ) {
                     List<Event> events = new ArrayList<>();
                     List<MessageExt> messageLists = processQueue.peek(CONSUME_BATCH_SIZE);
@@ -118,6 +123,7 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
 
                     return Status.READY;
                 } else {
+                    LOG.debug("processQueue:{} no message.", processQueue);
                     if ( !processQueue.isPullAlive() ) {
                         LOG.warn("Pulling [{}] has been inactive for more than 10 minutes", messageQueue);
                         processQueue.refreshLastPullTimestamp();
@@ -150,6 +156,14 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
             LOG.error("RocketMQSource process error", e);
             return Status.BACKOFF;
         }
+    }
+
+    @Override public long getBackOffSleepIncrement() {
+        return 0;
+    }
+
+    @Override public long getMaxBackOffSleepInterval() {
+        return 0;
     }
 
     @Override
@@ -382,8 +396,8 @@ public class RocketMQSource extends AbstractSource implements Configurable, Poll
         @Override
         public void run() {
             try {
-                LOG.debug("Begin to pull message queue: {}, tag: {}, beginOffset: {}, pullBatchSize: {}", flumePullRequest.getMessageQueue().toString(),
-                          flumePullRequest.getSubscription(), flumePullRequest.getOffset(), flumePullRequest.getBatchSize());
+//                LOG.debug("Begin to pull message queue: {}, tag: {}, beginOffset: {}, pullBatchSize: {}", flumePullRequest.getMessageQueue().toString(),
+//                          flumePullRequest.getSubscription(), flumePullRequest.getOffset(), flumePullRequest.getBatchSize());
 
                 pullConsumer.pullBlockIfNotFound(flumePullRequest.getMessageQueue(), flumePullRequest.getSubscription(), flumePullRequest.getOffset(),
                                                  flumePullRequest.getBatchSize(),

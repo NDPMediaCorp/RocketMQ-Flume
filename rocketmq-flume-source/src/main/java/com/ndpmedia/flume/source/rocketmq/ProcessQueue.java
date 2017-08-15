@@ -2,13 +2,17 @@ package com.ndpmedia.flume.source.rocketmq;
 
 import com.alibaba.rocketmq.common.message.MessageExt;
 import com.alibaba.rocketmq.common.message.MessageQueue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProcessQueue {
 
@@ -32,7 +36,6 @@ public class ProcessQueue {
     private volatile long ackOffset;
 
     private volatile boolean consumeOffsetPersisted;
-
 
     public ProcessQueue(final MessageQueue messageQueue) {
         this.messageQueue = messageQueue;
@@ -95,11 +98,11 @@ public class ProcessQueue {
         } finally {
             lock.writeLock().unlock();
             LOGGER.debug("Message Queue: {}, acknowledged {} messages. Accumulation: {}, Flow Control: {}, Ack: {}",
-                    messageQueue,
-                    messageList.size(),
-                    treeMap.size(),
-                    needFlowControl(),
-                    ackOffset);
+                messageQueue,
+                messageList.size(),
+                treeMap.size(),
+                needFlowControl(),
+                ackOffset);
         }
     }
 
@@ -129,12 +132,12 @@ public class ProcessQueue {
 
     public boolean needFlowControl() {
         return treeMap.size() >= FLOW_CONTROL_ACCUMULATION_THRESHOLD
-                || consumingWindowSpan() >= FLOW_CONTROL_CONSUMING_SPAN_THRESHOLD;
+            || consumingWindowSpan() >= FLOW_CONTROL_CONSUMING_SPAN_THRESHOLD;
     }
 
     public boolean mayResumePull() {
         return treeMap.size() <= FLOW_CONTROL_RESUME_PULL_THRESHOLD
-                && consumingWindowSpan() < FLOW_CONTROL_CONSUMING_SPAN_THRESHOLD;
+            && consumingWindowSpan() < FLOW_CONTROL_CONSUMING_SPAN_THRESHOLD;
     }
 
     public long consumingWindowSpan() {
@@ -196,5 +199,9 @@ public class ProcessQueue {
 
     public MessageQueue getMessageQueue() {
         return messageQueue;
+    }
+
+    @Override public String toString() {
+        return "ProcessQueue [MessageQueue:" + messageQueue + ",lastPullTimestamp:" + lastPullTimestamp + ",dropped:" + dropped + ",maxOffset:" + dropped + ",ackOffset:" + ackOffset + ",treeMap:" + treeMap.size() + ",window:" + treeMap.size() + "]";
     }
 }
